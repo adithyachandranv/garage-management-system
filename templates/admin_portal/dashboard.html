@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard - GaragePro{% endblock %}
+{% block content %}
+<div class="mb-8 flex justify-between items-center">
+    <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
+    <div class="text-gray-500 text-sm">Welcome back, {{ user.username }}</div>
+</div>
+
+<!-- Metrics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-gray-500 text-sm font-medium uppercase mb-1">Active Jobs</div>
+                <div class="text-3xl font-bold text-gray-800">{{ active_jobs_count }}</div>
+            </div>
+            <div class="bg-blue-100 p-3 rounded-full"><i class="fas fa-car text-blue-500 text-xl"></i></div>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-gray-500 text-sm font-medium uppercase mb-1">Monthly Revenue</div>
+                <div class="text-3xl font-bold text-gray-800">₹{{ monthly_revenue|floatformat:0 }}</div>
+            </div>
+            <div class="bg-green-100 p-3 rounded-full"><i class="fas fa-rupee-sign text-green-500 text-xl"></i></div>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-gray-500 text-sm font-medium uppercase mb-1">Pending Approvals</div>
+                <div class="text-3xl font-bold text-gray-800">{{ pending_approvals_count }}</div>
+            </div>
+            <div class="bg-yellow-100 p-3 rounded-full"><i class="fas fa-clock text-yellow-500 text-xl"></i></div>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="text-gray-500 text-sm font-medium uppercase mb-1">Low Stock Alerts</div>
+                <div class="text-3xl font-bold text-gray-800">{{ low_stock_count }}</div>
+            </div>
+            <div class="bg-red-100 p-3 rounded-full"><i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center gap-4">
+        <div class="bg-indigo-100 p-4 rounded-full"><i class="fas fa-users text-indigo-500 text-2xl"></i></div>
+        <div>
+            <div class="text-sm text-gray-500">Total Customers</div>
+            <div class="text-2xl font-bold">{{ total_customers }}</div>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center gap-4">
+        <div class="bg-purple-100 p-4 rounded-full"><i class="fas fa-user-cog text-purple-500 text-2xl"></i></div>
+        <div>
+            <div class="text-sm text-gray-500">Mechanics</div>
+            <div class="text-2xl font-bold">{{ total_mechanics }}</div>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6 flex items-center gap-4">
+        <div class="bg-cyan-100 p-4 rounded-full"><i class="fas fa-clipboard-list text-cyan-500 text-2xl"></i></div>
+        <div>
+            <div class="text-sm text-gray-500">Total Jobs</div>
+            <div class="text-2xl font-bold">{{ total_jobs }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+    <div class="bg-white rounded-lg shadow-md p-6 lg:col-span-2">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Revenue Trend (30 Days)</h3>
+        <canvas id="revenueChart" height="150"></canvas>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Job Status</h3>
+        <div class="h-64 flex justify-center"><canvas id="statusChart"></canvas></div>
+        <div class="mt-4 space-y-2">
+            {% for s in job_status_data %}
+            <div class="flex justify-between items-center text-sm"><span class="capitalize">{{ s.status|lower }}</span><span class="font-bold border px-2 rounded">{{ s.count }}</span></div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="px-6 py-4 border-b">
+        <h3 class="text-lg font-bold text-gray-800">Recent Activity</h3>
+    </div>
+    <table class="w-full whitespace-nowrap">
+        <thead class="bg-gray-50">
+            <tr class="text-left text-xs font-medium text-gray-500 uppercase">
+                <th class="px-6 py-3">Time</th>
+                <th class="px-6 py-3">Job</th>
+                <th class="px-6 py-3">Action</th>
+                <th class="px-6 py-3">By</th>
+                <th class="px-6 py-3">Details</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y">
+            {% for log in recent_activity %}
+            <tr>
+                <td class="px-6 py-4 text-sm text-gray-500">{{ log.timestamp|date:"M d, H:i" }}</td>
+                <td class="px-6 py-4 text-sm font-medium"><a href="{% url 'admin_job_detail' log.job.id %}"
+                        class="text-blue-600 hover:underline">#{{ log.job.id }}</a></td>
+                <td class="px-6 py-4"><span class="px-2 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">{{ log.action }}</span></td>
+                <td class="px-6 py-4 text-sm text-gray-500">{{ log.performed_by.username|default:"System" }}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">{% if log.old_status %}{{ log.old_status }} &rarr; {{ log.new_status }}{% else %}{{ log.remarks|truncatechars:30 }}{% endif %}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="px-6 py-4 text-center text-gray-500">No recent activity.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    const revenueData = {{ revenue_trend| safe }};
+    new Chart(revenueCtx, {
+        type: 'line',
+        data: { labels: revenueData.map(d => d.day), datasets: [{ label: 'Revenue (₹)', data: revenueData.map(d => d.daily_total), borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusData = {{ job_status_data| safe }};
+    const colors = { 'RECEIVED': '#FCD34D', 'DIAGNOSING': '#60A5FA', 'WAITING_APPROVAL': '#F59E0B', 'IN_PROGRESS': '#3B82F6', 'COMPLETED': '#10B981', 'DELIVERED': '#059669', 'CANCELLED': '#EF4444' };
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: { labels: statusData.map(d => d.status), datasets: [{ data: statusData.map(d => d.count), backgroundColor: statusData.map(d => colors[d.status] || '#9CA3AF'), borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } }
+    });
+</script>
+{% endblock %}

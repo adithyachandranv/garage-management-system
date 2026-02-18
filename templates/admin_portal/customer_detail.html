@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}{{ customer.user.username }} - GaragePro{% endblock %}
+{% block content %}
+<div class="mb-6"><a href="{% url 'admin_customers_list' %}" class="text-blue-600 hover:underline"><i
+            class="fas fa-arrow-left mr-1"></i>Back to Customers</a></div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Customer Info -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center gap-4 mb-4">
+            <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center"><i
+                    class="fas fa-user text-blue-500 text-2xl"></i></div>
+            <div>
+                <h2 class="text-xl font-bold">{{ customer.user.get_full_name|default:customer.user.username }}</h2>
+                <div class="text-gray-500 text-sm">{{ customer.user.email|default:"-" }}</div>
+            </div>
+        </div>
+        <div class="border-t pt-4 space-y-2 text-sm">
+            <div><span class="text-gray-500">Phone:</span> <span class="font-medium">{{ customer.user.phone|default:"-" }}</span></div>
+            <div><span class="text-gray-500">Address:</span> <span class="font-medium">{{ customer.address|default:"-" }}</span></div>
+            <div><span class="text-gray-500">Joined:</span> <span class="font-medium">{{ customer.created_at|date:"M d, Y" }}</span></div>
+        </div>
+    </div>
+
+    <!-- Vehicles -->
+    <div class="lg:col-span-2">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Vehicles</h3>
+            <a href="{% url 'admin_vehicle_create' %}"
+                class="bg-green-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-700"><i
+                    class="fas fa-plus mr-1"></i>Add Vehicle</a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for v in vehicles %}
+            <div class="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
+                <div class="font-bold text-lg">{{ v.registration_number }}</div>
+                <div class="text-gray-500 text-sm">{{ v.make }} {{ v.model }} ({{ v.year }})</div>
+                {% if v.vin %}<div class="text-xs text-gray-400 mt-1">VIN: {{ v.vin }}</div>{% endif %}
+                <div class="mt-2 text-xs"><span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">{{ v.jobs.count }} jobs</span></div>
+            </div>
+            {% empty %}
+            <div class="col-span-2 text-center py-8 text-gray-500">No vehicles registered.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Service History -->
+<div class="mt-8 bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="px-6 py-4 border-b">
+        <h3 class="text-lg font-bold text-gray-800">Service History</h3>
+    </div>
+    <table class="w-full">
+        <thead class="bg-gray-50">
+            <tr class="text-left text-xs font-medium text-gray-500 uppercase">
+                <th class="px-6 py-3">Job #</th>
+                <th class="px-6 py-3">Vehicle</th>
+                <th class="px-6 py-3">Status</th>
+                <th class="px-6 py-3">Date</th>
+                <th class="px-6 py-3">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y">
+            {% for j in jobs %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-medium">#{{ j.id }}</td>
+                <td class="px-6 py-4 text-sm">{{ j.vehicle.registration_number }}</td>
+                <td class="px-6 py-4"><span
+                        class="px-2 py-1 text-xs rounded-full font-bold {% if j.status == 'COMPLETED' or j.status == 'DELIVERED' %}bg-green-100 text-green-800{% elif j.status == 'CANCELLED' %}bg-red-100 text-red-800{% else %}bg-blue-100 text-blue-800{% endif %}">{{ j.get_status_display }}</span></td>
+                <td class="px-6 py-4 text-sm text-gray-500">{{ j.created_at|date:"M d, Y" }}</td>
+                <td class="px-6 py-4"><a href="{% url 'admin_job_detail' j.pk %}"
+                        class="text-blue-600 hover:underline text-sm">View</a></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="px-6 py-8 text-center text-gray-500">No service history.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

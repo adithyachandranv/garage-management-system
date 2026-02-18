@@ -1,0 +1,113 @@
+{% extends 'base_app.html' %}
+{% block title %}My Jobs - GaragePro{% endblock %}
+{% block nav_jobs %}bnav-active{% endblock %}
+{% block content %}
+
+<!-- Greeting -->
+<div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Hey, {{ user.get_full_name|default:user.username }} 👋</h1>
+    <p class="text-gray-500 text-sm mt-1">You have <span class="font-bold text-blue-600">{{ active_count }}</span>
+        active job{{ active_count|pluralize }} · <span class="text-green-600 font-bold">{{ total_completed }}</span>
+        completed overall</p>
+</div>
+
+<!-- Tab Row -->
+<div class="flex gap-2 mb-5 border-b border-gray-200" id="tabs">
+    <button onclick="switchTab('active')" id="tab-active"
+        class="px-4 py-2 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 transition">Active</button>
+    <button onclick="switchTab('completed')" id="tab-completed"
+        class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-600 transition">Completed</button>
+</div>
+
+<!-- Active Jobs -->
+<div id="panel-active" class="space-y-3">
+    {% for j in jobs %}
+    <a href="{% url 'mechanic_job_detail' j.pk %}"
+        class="block bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition animate-slide-up">
+        <div class="flex justify-between items-start mb-3">
+            <div>
+                <div class="font-bold text-gray-800">{{ j.vehicle.make }} {{ j.vehicle.model }}</div>
+                <div class="text-xs text-gray-400 mt-0.5">{{ j.vehicle.registration_number }} · Job #{{ j.id }}</div>
+            </div>
+            <span class="px-2.5 py-1 text-[11px] rounded-full font-bold uppercase tracking-wide
+                {% if j.status == 'IN_PROGRESS' %}bg-blue-100 text-blue-700
+                {% elif j.status == 'DIAGNOSING' %}bg-amber-100 text-amber-700
+                {% elif j.status == 'WAITING_APPROVAL' %}bg-orange-100 text-orange-700
+                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                {{ j.get_status_display }}
+            </span>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="w-full bg-gray-100 rounded-full h-1.5 mb-3">
+            <div class="h-1.5 rounded-full transition-all duration-500 status-{{ j.status|lower }}"></div>
+        </div>
+
+        <p class="text-sm text-gray-500 mb-3 leading-relaxed">{{ j.problem_description|truncatechars:90 }}</p>
+
+        <div class="flex items-center justify-between text-xs text-gray-400">
+            <div class="flex items-center gap-3">
+                <span><i class="fas fa-tools mr-1"></i>{{ j.repair_count }} repair{{ j.repair_count|pluralize }}</span>
+                {% if j.total_repair_cost %}<span class="font-medium text-gray-600">
+                    ₹{{j.total_repair_cost|floatformat:0 }}</span>{% endif %}
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="px-1.5 py-0.5 rounded bg-gray-100 font-bold text-gray-500">P{{ j.priority }}</span>
+                <span>{{ j.created_at|timesince }} ago</span>
+            </div>
+        </div>
+    </a>
+    {% empty %}
+    <div class="text-center py-16">
+        <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+            <i class="fas fa-check text-green-500 text-2xl"></i>
+        </div>
+        <div class="text-gray-600 font-medium">All caught up!</div>
+        <div class="text-gray-400 text-sm mt-1">No active jobs assigned to you</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Completed Jobs -->
+<div id="panel-completed" class="space-y-3 hidden">
+    {% for j in completed_jobs %}
+    <a href="{% url 'mechanic_job_detail' j.pk %}"
+        class="block bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition animate-slide-up">
+        <div class="flex justify-between items-center">
+            <div>
+                <div class="font-medium text-gray-700">{{ j.vehicle.make }} {{ j.vehicle.model }}</div>
+                <div class="text-xs text-gray-400">{{ j.vehicle.registration_number }} · #{{ j.id }}</div>
+            </div>
+            <div class="text-right">
+                <span class="px-2 py-1 text-[11px] rounded-full font-bold bg-green-100 text-green-700">
+                    {{j.get_status_display }}</span>
+                <div class="text-xs text-gray-400 mt-1">{{ j.completed_at|date:"M d"|default:"-" }}</div>
+            </div>
+        </div>
+    </a>
+    {% empty %}
+    <div class="text-center py-16 text-gray-400">
+        <i class="fas fa-clipboard-check text-3xl mb-3"></i>
+        <div>No completed jobs yet</div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchTab(tab) {
+        document.getElementById('panel-active').classList.toggle('hidden', tab !== 'active');
+        document.getElementById('panel-completed').classList.toggle('hidden', tab !== 'completed');
+        document.getElementById('tab-active').classList.toggle('border-blue-600', tab === 'active');
+        document.getElementById('tab-active').classList.toggle('text-blue-600', tab === 'active');
+        document.getElementById('tab-active').classList.toggle('border-transparent', tab !== 'active');
+        document.getElementById('tab-active').classList.toggle('text-gray-400', tab !== 'active');
+        document.getElementById('tab-completed').classList.toggle('border-blue-600', tab === 'completed');
+        document.getElementById('tab-completed').classList.toggle('text-blue-600', tab === 'completed');
+        document.getElementById('tab-completed').classList.toggle('border-transparent', tab !== 'completed');
+        document.getElementById('tab-completed').classList.toggle('text-gray-400', tab !== 'completed');
+    }
+</script>
+{% endblock %}

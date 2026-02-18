@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Billing - GaragePro{% endblock %}
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <h1 class="text-2xl font-bold text-gray-800">Billing & Invoices</h1>
+    <a href="{% url 'admin_invoice_create' %}"
+        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"><i
+            class="fas fa-plus mr-2"></i>Generate Invoice</a>
+</div>
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <table class="w-full">
+        <thead class="bg-gray-50">
+            <tr class="text-left text-xs font-medium text-gray-500 uppercase">
+                <th class="px-6 py-3">Invoice</th>
+                <th class="px-6 py-3">Job</th>
+                <th class="px-6 py-3">Customer</th>
+                <th class="px-6 py-3">Total</th>
+                <th class="px-6 py-3">Status</th>
+                <th class="px-6 py-3">Date</th>
+                <th class="px-6 py-3">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y">
+            {% for inv in invoices %}
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 font-bold">#{{ inv.id }}</td>
+                <td class="px-6 py-4 text-sm"><a href="{% url 'admin_job_detail' inv.job.pk %}"
+                        class="text-blue-600 hover:underline">Job #{{ inv.job.id }}</a></td>
+                <td class="px-6 py-4 text-sm">{{ inv.job.vehicle.customer.user.username }}</td>
+                <td class="px-6 py-4 font-bold">₹{{ inv.total_amount|floatformat:2 }}</td>
+                <td class="px-6 py-4">{% if inv.is_paid %}<span
+                        class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-bold">Paid</span>{% else %}<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-bold">Unpaid</span>{% endif %}</td>
+                <td class="px-6 py-4 text-sm text-gray-500">{{ inv.created_at|date:"M d, Y" }}</td>
+                <td class="px-6 py-4"><a href="{% url 'admin_invoice_detail' inv.pk %}"
+                        class="text-blue-600 hover:underline text-sm">View</a></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="px-6 py-8 text-center text-gray-500">No invoices.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

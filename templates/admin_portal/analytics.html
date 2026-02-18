@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Analytics - GaragePro{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-800 mb-6">Analytics & Reports</h1>
+
+<!-- Revenue Summary -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+        <div class="text-gray-500 text-sm uppercase">Total Revenue (All Time)</div>
+        <div class="text-3xl font-bold text-gray-800 mt-1">₹{{ total_revenue|floatformat:0 }}</div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+        <div class="text-gray-500 text-sm uppercase">This Month</div>
+        <div class="text-3xl font-bold text-gray-800 mt-1">₹{{ monthly_revenue|floatformat:0 }}</div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Revenue Trend (30 Days)</h3>
+        <canvas id="revenueChart" height="200"></canvas>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-4">Jobs by Status</h3>
+        <canvas id="jobsChart" height="200"></canvas>
+    </div>
+</div>
+
+<!-- Mechanic Workload -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <h3 class="text-lg font-bold text-gray-800 mb-4">Mechanic Workload</h3>
+    <div class="space-y-3">
+        {% for m in mechanic_workload %}
+        <div class="flex items-center gap-4">
+            <div class="w-32 font-medium text-sm truncate">{{ m.get_full_name|default:m.username }}</div>
+            <div class="flex-1 bg-gray-200 rounded-full h-6 relative">
+                <div class="bg-blue-500 rounded-full h-6 flex items-center justify-center text-xs text-white font-bold"
+                    style="width: {% widthratio m.active_jobs 10 100 %}%;">{{ m.active_jobs }}</div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-gray-500 text-sm">No mechanics found.</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Low Stock Items -->
+{% if low_stock_items %}
+<div class="bg-white rounded-lg shadow-md p-6">
+    <h3 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>Low
+        Stock Items</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {% for i in low_stock_items %}
+        <div class="border rounded-lg p-3 flex justify-between items-center">
+            <div>
+                <div class="font-medium text-sm">{{ i.part.name }}</div>
+                <div class="text-xs text-gray-500">SKU: {{ i.part.sku }}</div>
+            </div>
+            <div class="text-red-600 font-bold">{{ i.stock_quantity }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<script>
+    const rCtx = document.getElementById('revenueChart').getContext('2d');
+    const rData = {{ revenue_trend| safe }};
+    new Chart(rCtx, { type: 'line', data: { labels: rData.map(d => d.day), datasets: [{ label: 'Revenue', data: rData.map(d => d.daily_total), borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+
+    const jCtx = document.getElementById('jobsChart').getContext('2d');
+    const jData = {{ jobs_by_status| safe }};
+    const clrs = { 'RECEIVED': '#FCD34D', 'DIAGNOSING': '#60A5FA', 'WAITING_APPROVAL': '#F59E0B', 'IN_PROGRESS': '#3B82F6', 'COMPLETED': '#10B981', 'DELIVERED': '#059669', 'CANCELLED': '#EF4444' };
+    new Chart(jCtx, { type: 'bar', data: { labels: jData.map(d => d.status), datasets: [{ label: 'Jobs', data: jData.map(d => d.count), backgroundColor: jData.map(d => clrs[d.status] || '#9CA3AF') }] }, options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+</script>
+{% endblock %}

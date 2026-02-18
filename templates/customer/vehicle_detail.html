@@ -1,0 +1,130 @@
+{% extends 'base_app.html' %}
+{% block title %}{{ vehicle.make }} {{ vehicle.model }} - GaragePro{% endblock %}
+{% block nav_vehicles %}bnav-active{% endblock %}
+{% block content %}
+
+<a href="{% url 'customer_vehicles' %}"
+    class="inline-flex items-center text-sm text-gray-400 hover:text-blue-600 mb-4 transition">
+    <i class="fas fa-arrow-left mr-2"></i>Back
+</a>
+
+<!-- Vehicle Hero Card -->
+<div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 mb-5 text-white shadow-lg animate-slide-up">
+    <div class="flex items-center gap-4">
+        <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+            <i class="fas fa-car text-2xl"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-bold">{{ vehicle.make }} {{ vehicle.model }}</h1>
+            <div class="text-blue-200 text-sm">{{ vehicle.registration_number }} · {{ vehicle.year }}</div>
+            {% if vehicle.vin %}<div class="text-blue-300 text-xs mt-0.5">VIN: {{ vehicle.vin }}</div>{% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Tabs -->
+<div class="flex gap-1 mb-5 bg-gray-100 rounded-xl p-1" id="vtabs">
+    <button onclick="switchVTab('history')" id="vtab-history"
+        class="flex-1 py-2 text-sm font-semibold rounded-lg bg-white text-gray-800 shadow-sm transition">History</button>
+    <button onclick="switchVTab('warranties')" id="vtab-warranties"
+        class="flex-1 py-2 text-sm font-semibold rounded-lg text-gray-400 transition">Warranties</button>
+    <button onclick="switchVTab('reminders')" id="vtab-reminders"
+        class="flex-1 py-2 text-sm font-semibold rounded-lg text-gray-400 transition">Reminders</button>
+</div>
+
+<!-- Service History Tab -->
+<div id="vpanel-history" class="space-y-2">
+    {% for j in jobs %}
+    <a href="{% url 'customer_job_detail' j.pk %}"
+        class="block bg-white rounded-2xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition animate-slide-up">
+        <div class="flex justify-between items-center">
+            <div>
+                <div class="font-medium text-gray-700 text-sm">Job #{{ j.id }}</div>
+                <div class="text-xs text-gray-400">{{ j.created_at|date:"M d, Y" }}</div>
+            </div>
+            <span class="px-2 py-1 text-[11px] rounded-full font-bold
+                {% if j.status == 'COMPLETED' or j.status == 'DELIVERED' %}bg-green-100 text-green-700
+                {% elif j.status == 'IN_PROGRESS' %}bg-blue-100 text-blue-700
+                {% elif j.status == 'CANCELLED' %}bg-red-100 text-red-700
+                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                {{ j.get_status_display }}
+            </span>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">{{ j.problem_description|truncatechars:80 }}</p>
+    </a>
+    {% empty %}
+    <div class="text-center py-12 text-gray-400">
+        <i class="fas fa-history text-2xl mb-2"></i>
+        <div class="text-sm">No service history yet</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Warranties Tab -->
+<div id="vpanel-warranties" class="space-y-2 hidden">
+    {% for w in warranties %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-slide-up">
+        <div class="flex justify-between items-start">
+            <div>
+                <div class="font-medium text-gray-700 text-sm">{{ w.warranty_type }}</div>
+                <div class="text-xs text-gray-400 mt-1">{{ w.start_date|date:"M d, Y" }} → {{ w.end_date|date:"M d, Y"
+                    }}</div>
+            </div>
+            <span
+                class="px-2 py-1 text-[11px] rounded-full font-bold {% if w.is_active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">
+                {% if w.is_active %}Active{% else %}Expired{% endif %}
+            </span>
+        </div>
+        {% if w.coverage_details %}<p class="text-sm text-gray-500 mt-2">{{ w.coverage_details|truncatechars:100 }}</p>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="text-center py-12 text-gray-400">
+        <i class="fas fa-shield-alt text-2xl mb-2"></i>
+        <div class="text-sm">No active warranties</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Reminders Tab -->
+<div id="vpanel-reminders" class="space-y-2 hidden">
+    {% for r in reminders %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-3 animate-slide-up">
+        <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
+            <i class="fas fa-bell text-amber-500"></i>
+        </div>
+        <div class="flex-1">
+            <div class="font-medium text-gray-700 text-sm">{{ r.service_type }}</div>
+            <div class="text-xs text-gray-400">{{ r.reminder_date|date:"M d, Y" }}{% if r.notes %} · {{
+                r.notes|truncatechars:30 }}{% endif %}</div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-12 text-gray-400">
+        <i class="fas fa-bell-slash text-2xl mb-2"></i>
+        <div class="text-sm">No upcoming reminders</div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchVTab(tab) {
+        ['history', 'warranties', 'reminders'].forEach(t => {
+            const panel = document.getElementById('vpanel-' + t);
+            const btn = document.getElementById('vtab-' + t);
+            if (t === tab) {
+                panel.classList.remove('hidden');
+                btn.classList.add('bg-white', 'text-gray-800', 'shadow-sm');
+                btn.classList.remove('text-gray-400');
+            } else {
+                panel.classList.add('hidden');
+                btn.classList.remove('bg-white', 'text-gray-800', 'shadow-sm');
+                btn.classList.add('text-gray-400');
+            }
+        });
+    }
+</script>
+{% endblock %}

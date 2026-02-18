@@ -1,0 +1,40 @@
+{% extends 'base_app.html' %}
+{% block title %}Request Approval - Job #{{ job.id }}{% endblock %}
+{% block nav_jobs %}bnav-active{% endblock %}
+{% block content %}
+
+<a href="{% url 'mechanic_job_detail' job.pk %}"
+    class="inline-flex items-center text-sm text-gray-400 hover:text-blue-600 mb-4 transition">
+    <i class="fas fa-arrow-left mr-2"></i>Back to Job #{{ job.id }}
+</a>
+
+<div class="mb-5">
+    <h1 class="text-xl font-bold text-gray-800">Request Approval</h1>
+    <p class="text-sm text-gray-400 mt-1">
+        {{ job.vehicle.make }} {{ job.vehicle.model }} · {{job.vehicle.registration_number }}</p>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 animate-slide-up">
+    <!-- Cost Summary -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6 text-center">
+        <div class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">Total Estimated Cost</div>
+        <div class="text-3xl font-bold text-amber-800">₹{{ total_cost|floatformat:0 }}</div>
+        <div class="text-xs text-amber-500 mt-1">Based on all repair logs</div>
+    </div>
+
+    <div class="text-sm text-gray-500 mb-5 bg-gray-50 rounded-xl p-4">
+        <i class="fas fa-info-circle text-gray-400 mr-2"></i>
+        This will send a notification to the customer for approval. The job status will change to <strong>Waiting
+            Approval</strong>.
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit"
+            class="w-full bg-amber-500 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-amber-600 transition shadow-sm">
+            <i class="fas fa-paper-plane mr-2"></i>Send for Approval
+        </button>
+    </form>
+</div>
+
+{% endblock %}

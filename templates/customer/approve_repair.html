@@ -1,0 +1,43 @@
+{% extends 'base_app.html' %}
+{% block title %}Approve Repair - GaragePro{% endblock %}
+{% block nav_home %}bnav-active{% endblock %}
+{% block content %}
+
+<a href="{% url 'customer_job_detail' approval.job.pk %}"
+    class="inline-flex items-center text-sm text-gray-400 hover:text-blue-600 mb-4 transition">
+    <i class="fas fa-arrow-left mr-2"></i>Back to Job
+</a>
+
+<div class="mb-5">
+    <h1 class="text-xl font-bold text-gray-800">Review Repair</h1>
+    <p class="text-sm text-gray-400 mt-1">Job #{{ approval.job.id }} · {{ approval.job.vehicle.registration_number }}
+    </p>
+</div>
+
+<!-- Cost Card -->
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4 animate-slide-up">
+    <div class="text-center mb-5">
+        <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Estimated Repair Cost</div>
+        <div class="text-4xl font-bold text-gray-800">₹{{ approval.estimated_cost_snapshot|floatformat:0 }}</div>
+    </div>
+
+    <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-500 mb-5">
+        <i class="fas fa-info-circle text-gray-400 mr-1"></i>
+        The mechanic has diagnosed the issue and provided this estimate. You can approve to proceed or reject to discuss
+        further.
+    </div>
+
+    <form method="post" class="space-y-3">
+        {% csrf_token %}
+        <button type="submit" name="decision" value="APPROVED"
+            class="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-green-700 transition shadow-sm flex items-center justify-center gap-2">
+            <i class="fas fa-check-circle"></i>Approve Repair
+        </button>
+        <button type="submit" name="decision" value="REJECTED"
+            class="w-full bg-white text-red-500 border-2 border-red-200 py-3.5 rounded-xl font-bold text-sm hover:bg-red-50 transition flex items-center justify-center gap-2">
+            <i class="fas fa-times-circle"></i>Reject
+        </button>
+    </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base_app.html' %}
+{% block title %}Billing - GaragePro{% endblock %}
+{% block nav_billing %}bnav-active{% endblock %}
+{% block content %}
+
+<div class="mb-5">
+    <h1 class="text-xl font-bold text-gray-800">Billing</h1>
+    <p class="text-sm text-gray-400 mt-1">Your invoices and payment history</p>
+</div>
+
+<!-- Summary Cards -->
+<div class="grid grid-cols-2 gap-3 mb-6">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-slide-up">
+        <div class="text-xs text-gray-400 font-medium uppercase mb-1">Total Paid</div>
+        <div class="text-2xl font-bold text-green-600">₹{{ total_spent|floatformat:0 }}</div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-slide-up">
+        <div class="text-xs text-gray-400 font-medium uppercase mb-1">Pending</div>
+        <div class="text-2xl font-bold {% if pending_amount %}text-amber-600{% else %}text-gray-300{% endif %}">
+            ₹{{ pending_amount|floatformat:0 }}</div>
+    </div>
+</div>
+
+<!-- Invoice List -->
+<h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Invoices</h2>
+<div class="space-y-2">
+    {% for inv in invoices %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-slide-up">
+        <div class="flex justify-between items-start mb-2">
+            <div>
+                <div class="font-medium text-gray-700 text-sm">Invoice for Job #{{ inv.job.id }}</div>
+                <div class="text-xs text-gray-400">{{ inv.job.vehicle.registration_number }} · {{ inv.created_at|date:"M
+                    d, Y" }}</div>
+            </div>
+            <span
+                class="px-2.5 py-1 text-[11px] rounded-full font-bold {% if inv.is_paid %}bg-green-100 text-green-700{% else %}bg-amber-100 text-amber-700{% endif %}">
+                {% if inv.is_paid %}Paid{% else %}Unpaid{% endif %}
+            </span>
+        </div>
+        <div class="flex items-center justify-between border-t border-gray-100 pt-2 mt-2">
+            <div class="text-xs text-gray-400">
+                <span>Labor: ₹{{ inv.labor_cost|floatformat:0 }}</span>
+                <span class="mx-1">·</span>
+                <span>Parts: ₹{{ inv.parts_cost|floatformat:0 }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="text-lg font-bold text-gray-800">₹{{ inv.total_amount|floatformat:0 }}</div>
+                <a href="{% url 'billing:invoice_detail' inv.pk %}"
+                    class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-3 py-1.5 rounded-lg transition-colors">
+                    View
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="text-center py-16">
+        <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+            <i class="fas fa-receipt text-gray-400 text-2xl"></i>
+        </div>
+        <div class="text-gray-600 font-medium">No invoices yet</div>
+        <div class="text-gray-400 text-sm mt-1">Invoices will appear here after services</div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

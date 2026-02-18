@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Job #{{ job.id }} - GaragePro{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{% url 'admin_job_detail' job.pk %}" class="text-blue-600 hover:underline">
+        <i class="fas fa-arrow-left mr-1"></i>Back to Job Detail
+    </a>
+</div>
+
+<div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-8">
+    <h1 class="text-2xl font-bold mb-6 text-gray-800">Edit Job #{{ job.id }}</h1>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Vehicle Info (Read-only) -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
+            <div class="p-3 bg-gray-50 rounded-lg border text-gray-600">
+                {{ job.vehicle.registration_number }} - {{ job.vehicle.make }} {{ job.vehicle.model }}
+            </div>
+        </div>
+
+        <!-- Problem Description -->
+        <div>
+            <label for="problem_description" class="block text-sm font-medium text-gray-700 mb-1">Problem
+                Description</label>
+            <textarea name="problem_description" id="problem_description" rows="4" required
+                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">{{ job.problem_description }}</textarea>
+        </div>
+
+        <!-- Priority -->
+        <div>
+            <label for="priority" class="block text-sm font-medium text-gray-700 mb-1">Priority (1-5)</label>
+            <select name="priority" id="priority"
+                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                {% for i in "12345"|make_list %}
+                <option value="{{ i }}" {% if job.priority|stringformat:"i" == i %}selected{% endif %}>{{ i }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Assigned Mechanic -->
+        <div>
+            <label for="mechanic" class="block text-sm font-medium text-gray-700 mb-1">Assigned Mechanic</label>
+            <select name="mechanic" id="mechanic"
+                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                <option value="">-- Unassigned --</option>
+                {% for m in mechanics %}
+                <option value="{{ m.pk }}" {% if job.assigned_mechanic_id == m.pk %}selected{% endif %}>
+                    {{ m.get_full_name|default:m.username }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4">
+            <a href="{% url 'admin_job_detail' job.pk %}"
+                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</a>
+            <button type="submit"
+                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">Save
+                Changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

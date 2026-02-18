@@ -1,0 +1,41 @@
+{% extends 'base_app.html' %}
+{% block title %}Set Estimate - Job #{{ job.id }}{% endblock %}
+{% block nav_jobs %}bnav-active{% endblock %}
+{% block content %}
+
+<a href="{% url 'mechanic_job_detail' job.pk %}"
+    class="inline-flex items-center text-sm text-gray-400 hover:text-blue-600 mb-4 transition">
+    <i class="fas fa-arrow-left mr-2"></i>Back to Job #{{ job.id }}
+</a>
+
+<div class="mb-5">
+    <h1 class="text-xl font-bold text-gray-800">Set Estimated Completion</h1>
+    <p class="text-sm text-gray-400 mt-1">{{ job.vehicle.make }} {{ job.vehicle.model }}</p>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 animate-slide-up">
+    {% if job.estimated_completion %}
+    <div class="bg-blue-50 rounded-xl p-4 mb-5 flex items-center gap-3">
+        <div class="bg-blue-100 p-2 rounded-lg"><i class="fas fa-clock text-blue-600"></i></div>
+        <div>
+            <div class="text-xs text-blue-500 font-medium">Current Estimate</div>
+            <div class="font-bold text-blue-800">{{ job.estimated_completion|date:"M d, Y · H:i" }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="post" class="space-y-5">
+        {% csrf_token %}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">New Completion Date & Time</label>
+            <input name="estimated_completion" type="datetime-local" required
+                class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none transition">
+        </div>
+        <button type="submit"
+            class="w-full bg-blue-600 text-white py-3 rounded-xl font-medium text-sm hover:bg-blue-700 transition shadow-sm">
+            <i class="fas fa-check mr-2"></i>Update Estimate
+        </button>
+    </form>
+</div>
+
+{% endblock %}
