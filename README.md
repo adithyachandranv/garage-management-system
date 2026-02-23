@@ -35,6 +35,8 @@ A comprehensive web-based application for managing a vehicle repair garage. This
 -   **Auto-Invoicing**: Generates invoices based on **approved** repairs and parts used.
 -   **Status Tracking**: Track Paid vs. Pending/Due invoices.
 -   **Payment Recording**: Log payments against invoices.
+-   **Revenue Tracking**: Accepted money requests are automatically reflected in total revenue calculations on dashboards and analytics pages.
+-   **Comprehensive Billing List**: Admin billing list provides an integrated view of accepted money requests alongside standard invoices.
 
 #### 6. Notifications
 -   **Real-time Alerts**: In-app notifications for job assignments, status changes, and approval requests.
