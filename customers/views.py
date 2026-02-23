@@ -31,9 +31,15 @@ def customer_dashboard(request):
         job__vehicle__customer=customer, status='PENDING'
     ).select_related('job__vehicle').count()
 
-    total_spent = Invoice.objects.filter(
+    total_invoiced = Invoice.objects.filter(
         job__vehicle__customer=customer, is_paid=True
     ).aggregate(total=Sum('total_amount'))['total'] or 0
+
+    total_money_accepted = Approval.objects.filter(
+        job__vehicle__customer=customer, status='APPROVED'
+    ).aggregate(total=Sum('estimated_cost_snapshot'))['total'] or 0
+
+    total_spent = total_invoiced + total_money_accepted
 
     return render(request, 'customer/dashboard.html', {
         'customer': customer, 'vehicles': vehicles,
@@ -84,10 +90,17 @@ def customer_job_detail(request, pk):
 
     total_repair_cost = sum(r.estimated_cost for r in repairs)
 
+    # Money request totals
+    pending_money_requests = approvals.filter(status='PENDING')
+    accepted_money_total = approvals.filter(status='APPROVED').aggregate(
+        total=Sum('estimated_cost_snapshot'))['total'] or 0
+
     return render(request, 'customer/job_detail.html', {
         'job': job, 'repairs': repairs, 'activity': activity,
         'approvals': approvals, 'has_feedback': has_feedback,
         'total_repair_cost': total_repair_cost,
+        'pending_money_requests': pending_money_requests,
+        'accepted_money_total': accepted_money_total,
     })
 
 # ─── Approve/Reject Repair ──────────────
@@ -98,6 +111,8 @@ def customer_approve_repair(request, pk):
         Approval.objects.select_related('job__vehicle'),
         pk=pk, job__vehicle__customer=customer, status='PENDING'
     )
+    linked_repairs = approval.repairs.all()
+
     if request.method == 'POST':
         decision = request.POST['decision']
         approval.status = decision
@@ -109,23 +124,33 @@ def customer_approve_repair(request, pk):
 
             try:
                 approval.job.change_status('IN_PROGRESS', request.user)
-            except Exception as e:
-                messages.error(request, f"Could not update job status: {e}")
+            except Exception:
+                pass  # May already be IN_PROGRESS
         
+        # Log activity
+        JobActivityLog.objects.create(
+            job=approval.job, performed_by=request.user,
+            action=f'Money Request {decision.title()}',
+            remarks=f'₹{approval.estimated_cost_snapshot}'
+        )
+
         # Notify mechanic
         if approval.job.assigned_mechanic:
             create_notification(
                 recipient=approval.job.assigned_mechanic,
-                title=f"Repair {decision.title()}: {approval.job.vehicle.registration_number}",
-                message=f"Customer has {decision.lower()} the additional repairs.",
-                notification_type="approval_response",
+                title=f"Money Request {decision.title()}: {approval.job.vehicle.registration_number}",
+                message=f"Customer has {decision.lower()} the money request of ₹{approval.estimated_cost_snapshot}.",
+                notification_type="money_request_response",
                 related_job=approval.job,
                 link=f"/mechanic/jobs/{approval.job.pk}/"
             )
 
-        messages.success(request, f'Repair {decision.lower()}.')
+        messages.success(request, f'Money request {decision.lower()}.')
         return redirect('customer_job_detail', pk=approval.job.pk)
-    return render(request, 'customer/approve_repair.html', {'approval': approval})
+    return render(request, 'customer/approve_repair.html', {
+        'approval': approval,
+        'linked_repairs': linked_repairs,
+    })
 
 # ─── Billing ─────────────────────────────
 @customer_required
@@ -135,14 +160,25 @@ def customer_billing(request):
         job__vehicle__customer=customer
     ).select_related('job__vehicle').order_by('-created_at')
 
-    total_spent = invoices.filter(is_paid=True).aggregate(
+    total_invoiced = invoices.filter(is_paid=True).aggregate(
         total=Sum('total_amount'))['total'] or 0
     pending_amount = invoices.filter(is_paid=False).aggregate(
         total=Sum('total_amount'))['total'] or 0
 
+    # Money requests
+    accepted_money_requests = Approval.objects.filter(
+        job__vehicle__customer=customer, status='APPROVED'
+    ).select_related('job__vehicle').order_by('-created_at')
+    total_money_accepted = accepted_money_requests.aggregate(
+        total=Sum('estimated_cost_snapshot'))['total'] or 0
+
+    total_spent = total_invoiced + total_money_accepted
+
     return render(request, 'customer/billing.html', {
         'invoices': invoices, 'total_spent': total_spent,
         'pending_amount': pending_amount,
+        'accepted_money_requests': accepted_money_requests,
+        'total_money_accepted': total_money_accepted,
     })
 
 # ─── Feedback ────────────────────────────

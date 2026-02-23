@@ -73,29 +73,36 @@
         class="flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-3 rounded-xl font-medium text-sm hover:bg-gray-200 transition">
         <i class="fas fa-clock"></i>Set ETA
     </a>
-    {% if job.status == 'DIAGNOSING' %}
-    <a href="{% url 'mechanic_request_approval' job.pk %}"
+    {% if job.status != 'COMPLETED' and job.status != 'DELIVERED' and job.status != 'CANCELLED' %}
+    <a href="{% url 'mechanic_request_money' job.pk %}"
         class="flex items-center justify-center gap-2 bg-amber-500 text-white py-3 rounded-xl font-medium text-sm hover:bg-amber-600 transition shadow-sm">
-        <i class="fas fa-paper-plane"></i>Approval
+        <i class="fas fa-money-bill-wave"></i>Request Money
     </a>
     {% else %}
     <div class="bg-gray-50 py-3 rounded-xl text-center text-xs text-gray-400">—</div>
     {% endif %}
 </div>
 
-<!-- Approval Status -->
+<!-- Money Requests -->
 {% if approvals %}
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4 animate-slide-up">
-    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Approvals</h3>
+    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Money Requests</h3>
     {% for a in approvals %}
-    <div class="flex justify-between items-center py-2 {% if not forloop.last %}border-b border-gray-100{% endif %}">
-        <span class="text-sm font-medium text-gray-700">₹{{ a.estimated_cost_snapshot|floatformat:0 }}</span>
-        <span class="px-2.5 py-1 text-[11px] rounded-full font-bold
-            {% if a.status == 'APPROVED' %}bg-green-100 text-green-700
-            {% elif a.status == 'REJECTED' %}bg-red-100 text-red-700
-            {% else %}bg-amber-100 text-amber-700{% endif %}">
-            {{ a.get_status_display }}
-        </span>
+    <div class="py-3 {% if not forloop.last %}border-b border-gray-100{% endif %}">
+        <div class="flex justify-between items-center mb-1">
+            <span class="text-sm font-bold text-gray-700">₹{{ a.estimated_cost_snapshot|floatformat:0 }}</span>
+            <span class="px-2.5 py-1 text-[11px] rounded-full font-bold
+                {% if a.status == 'APPROVED' %}bg-green-100 text-green-700
+                {% elif a.status == 'REJECTED' %}bg-red-100 text-red-700
+                {% else %}bg-amber-100 text-amber-700{% endif %}">
+                {{ a.get_status_display }}
+            </span>
+        </div>
+        {% if a.description %}
+        <div class="text-xs text-gray-500 mt-1">{{ a.description|truncatechars:80 }}</div>
+        {% endif %}
+        <div class="text-xs text-gray-400 mt-1">{{ a.created_at|date:"M d, Y · H:i" }} · {{ a.repairs.count }} repair(s)
+        </div>
     </div>
     {% endfor %}
 </div>

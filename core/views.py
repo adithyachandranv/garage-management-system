@@ -2,7 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import Count, Sum, F, Q
 from django.db.models.functions import TruncDate
 from django.utils import timezone
+from django.core.serializers.json import DjangoJSONEncoder
 from datetime import timedelta
+import json
 from django.contrib import messages
 from accounts.decorators import admin_required, login_required
 from jobs.models import ServiceJob, JobActivityLog, JobPart
@@ -23,9 +25,15 @@ def admin_dashboard(request):
     ).count()
 
     current_month = timezone.now().month
-    monthly_revenue = Invoice.objects.filter(
+    monthly_invoice_revenue = Invoice.objects.filter(
         is_paid=True, created_at__month=current_month
     ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+
+    monthly_money_accepted = Approval.objects.filter(
+        status='APPROVED', created_at__month=current_month
+    ).aggregate(Sum('estimated_cost_snapshot'))['estimated_cost_snapshot__sum'] or 0
+
+    monthly_revenue = monthly_invoice_revenue + monthly_money_accepted
 
     pending_approvals_count = Approval.objects.filter(status='PENDING').count()
 
@@ -37,14 +45,30 @@ def admin_dashboard(request):
         'job', 'performed_by'
     ).order_by('-timestamp')[:10]
 
-    job_status_data = ServiceJob.objects.values('status').annotate(count=Count('status'))
+    job_status_data = list(ServiceJob.objects.values('status').annotate(count=Count('status')))
 
     thirty_days_ago = timezone.now() - timedelta(days=30)
-    revenue_trend = Invoice.objects.filter(
+    invoice_trend = Invoice.objects.filter(
         is_paid=True, created_at__gte=thirty_days_ago
     ).annotate(day=TruncDate('created_at')).values('day').annotate(
         daily_total=Sum('total_amount')
     ).order_by('day')
+
+    money_trend = Approval.objects.filter(
+        status='APPROVED', created_at__gte=thirty_days_ago
+    ).annotate(day=TruncDate('created_at')).values('day').annotate(
+        daily_total=Sum('estimated_cost_snapshot')
+    ).order_by('day')
+
+    # Merge invoice + money request revenue by day
+    merged = {}
+    for entry in invoice_trend:
+        d = entry['day'].isoformat()
+        merged[d] = merged.get(d, 0) + float(entry['daily_total'])
+    for entry in money_trend:
+        d = entry['day'].isoformat()
+        merged[d] = merged.get(d, 0) + float(entry['daily_total'])
+    revenue_trend = [{'day': k, 'daily_total': v} for k, v in sorted(merged.items())]
 
     total_customers = Customer.objects.count()
     total_mechanics = User.objects.filter(role='MECHANIC').count()
@@ -56,8 +80,8 @@ def admin_dashboard(request):
         'pending_approvals_count': pending_approvals_count,
         'low_stock_count': low_stock_count,
         'recent_activity': recent_activity,
-        'job_status_data': list(job_status_data),
-        'revenue_trend': list(revenue_trend),
+        'job_status_data': json.dumps(job_status_data, cls=DjangoJSONEncoder),
+        'revenue_trend': json.dumps(revenue_trend, cls=DjangoJSONEncoder),
         'total_customers': total_customers,
         'total_mechanics': total_mechanics,
         'total_jobs': total_jobs,
@@ -305,7 +329,28 @@ def admin_stock_update(request, pk):
 @admin_required
 def admin_billing_list(request):
     invoices = Invoice.objects.select_related('job__vehicle__customer__user').order_by('-created_at')
-    return render(request, 'admin_portal/billing_list.html', {'invoices': invoices})
+
+    total_invoiced = invoices.filter(is_paid=True).aggregate(
+        total=Sum('total_amount'))['total'] or 0
+    pending_invoices = invoices.filter(is_paid=False).aggregate(
+        total=Sum('total_amount'))['total'] or 0
+
+    accepted_money_requests = Approval.objects.filter(
+        status='APPROVED'
+    ).select_related('job__vehicle__customer__user').order_by('-created_at')
+    total_money_accepted = accepted_money_requests.aggregate(
+        total=Sum('estimated_cost_snapshot'))['total'] or 0
+
+    total_revenue = total_invoiced + total_money_accepted
+
+    return render(request, 'admin_portal/billing_list.html', {
+        'invoices': invoices,
+        'accepted_money_requests': accepted_money_requests,
+        'total_invoiced': total_invoiced,
+        'pending_invoices': pending_invoices,
+        'total_money_accepted': total_money_accepted,
+        'total_revenue': total_revenue,
+    })
 
 @admin_required
 def admin_invoice_create(request):
@@ -365,11 +410,12 @@ def admin_approvals_list(request):
         approval.approved_by = request.user
         approval.save()
         if approval.status == 'APPROVED':
+            approval.repairs.update(is_approved=True)
             try:
                 approval.job.change_status('IN_PROGRESS', request.user)
             except Exception:
                 pass
-        messages.success(request, f'Approval {approval.status.lower()}.')
+        messages.success(request, f'Money request {approval.status.lower()}.')
         return redirect('admin_approvals_list')
     return render(request, 'admin_portal/approvals_list.html', {'approvals': approvals})
 
@@ -378,18 +424,43 @@ def admin_approvals_list(request):
 def admin_analytics(request):
     thirty_days_ago = timezone.now() - timedelta(days=30)
 
-    revenue_trend = Invoice.objects.filter(
+    invoice_trend = Invoice.objects.filter(
         is_paid=True, created_at__gte=thirty_days_ago
     ).annotate(day=TruncDate('created_at')).values('day').annotate(
         daily_total=Sum('total_amount')
     ).order_by('day')
 
-    total_revenue = Invoice.objects.filter(is_paid=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    monthly_revenue = Invoice.objects.filter(
+    money_trend = Approval.objects.filter(
+        status='APPROVED', created_at__gte=thirty_days_ago
+    ).annotate(day=TruncDate('created_at')).values('day').annotate(
+        daily_total=Sum('estimated_cost_snapshot')
+    ).order_by('day')
+
+    # Merge invoice + money request revenue by day
+    merged = {}
+    for entry in invoice_trend:
+        d = entry['day'].isoformat()
+        merged[d] = merged.get(d, 0) + float(entry['daily_total'])
+    for entry in money_trend:
+        d = entry['day'].isoformat()
+        merged[d] = merged.get(d, 0) + float(entry['daily_total'])
+    revenue_trend = [{'day': k, 'daily_total': v} for k, v in sorted(merged.items())]
+
+    total_invoice_revenue = Invoice.objects.filter(is_paid=True).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    total_money_accepted = Approval.objects.filter(
+        status='APPROVED'
+    ).aggregate(Sum('estimated_cost_snapshot'))['estimated_cost_snapshot__sum'] or 0
+    total_revenue = float(total_invoice_revenue) + float(total_money_accepted)
+
+    monthly_invoice_revenue = Invoice.objects.filter(
         is_paid=True, created_at__month=timezone.now().month
     ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    monthly_money_accepted = Approval.objects.filter(
+        status='APPROVED', created_at__month=timezone.now().month
+    ).aggregate(Sum('estimated_cost_snapshot'))['estimated_cost_snapshot__sum'] or 0
+    monthly_revenue = float(monthly_invoice_revenue) + float(monthly_money_accepted)
 
-    jobs_by_status = ServiceJob.objects.values('status').annotate(count=Count('id'))
+    jobs_by_status = list(ServiceJob.objects.values('status').annotate(count=Count('id')))
     mechanic_workload = User.objects.filter(role='MECHANIC').annotate(
         active_jobs=Count('servicejob', filter=Q(servicejob__status__in=['DIAGNOSING', 'IN_PROGRESS']))
     ).order_by('-active_jobs')
@@ -399,10 +470,10 @@ def admin_analytics(request):
     ).select_related('part')
 
     return render(request, 'admin_portal/analytics.html', {
-        'revenue_trend': list(revenue_trend),
+        'revenue_trend': json.dumps(revenue_trend, cls=DjangoJSONEncoder),
         'total_revenue': total_revenue,
         'monthly_revenue': monthly_revenue,
-        'jobs_by_status': list(jobs_by_status),
+        'jobs_by_status': json.dumps(jobs_by_status, cls=DjangoJSONEncoder),
         'mechanic_workload': mechanic_workload,
         'low_stock_items': low_stock_items,
     })

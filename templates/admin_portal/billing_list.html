@@ -7,6 +7,67 @@
         class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"><i
             class="fas fa-plus mr-2"></i>Generate Invoice</a>
 </div>
+
+<!-- Revenue Summary -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded-lg shadow-md p-5 border-l-4 border-green-500">
+        <div class="text-gray-500 text-xs font-medium uppercase mb-1">Total Revenue</div>
+        <div class="text-2xl font-bold text-green-600">₹{{ total_revenue|floatformat:0 }}</div>
+        <div class="text-xs text-gray-400 mt-1">Invoices + Money Requests</div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-5 border-l-4 border-blue-500">
+        <div class="text-gray-500 text-xs font-medium uppercase mb-1">Invoiced (Paid)</div>
+        <div class="text-2xl font-bold text-blue-600">₹{{ total_invoiced|floatformat:0 }}</div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-5 border-l-4 border-purple-500">
+        <div class="text-gray-500 text-xs font-medium uppercase mb-1">Money Accepted</div>
+        <div class="text-2xl font-bold text-purple-600">₹{{ total_money_accepted|floatformat:0 }}</div>
+    </div>
+    <div class="bg-white rounded-lg shadow-md p-5 border-l-4 border-amber-500">
+        <div class="text-gray-500 text-xs font-medium uppercase mb-1">Pending Invoices</div>
+        <div class="text-2xl font-bold text-amber-600">₹{{ pending_invoices|floatformat:0 }}</div>
+    </div>
+</div>
+
+<!-- Accepted Money Requests -->
+{% if accepted_money_requests %}
+<div class="mb-8">
+    <h2 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-money-bill-wave text-purple-500 mr-2"></i>Accepted
+        Money Requests</h2>
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr class="text-left text-xs font-medium text-gray-500 uppercase">
+                    <th class="px-6 py-3">#</th>
+                    <th class="px-6 py-3">Job</th>
+                    <th class="px-6 py-3">Customer</th>
+                    <th class="px-6 py-3">Description</th>
+                    <th class="px-6 py-3">Amount</th>
+                    <th class="px-6 py-3">Approved By</th>
+                    <th class="px-6 py-3">Date</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y">
+                {% for mr in accepted_money_requests %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-bold text-sm">#{{ mr.id }}</td>
+                    <td class="px-6 py-4 text-sm"><a href="{% url 'admin_job_detail' mr.job.pk %}"
+                            class="text-blue-600 hover:underline">Job #{{ mr.job.id }}</a></td>
+                    <td class="px-6 py-4 text-sm">{{ mr.job.vehicle.customer.user.username }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ mr.description|truncatechars:40|default:"-" }}</td>
+                    <td class="px-6 py-4 font-bold text-green-700">₹{{ mr.estimated_cost_snapshot|floatformat:2 }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ mr.approved_by.username|default:"-" }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ mr.created_at|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Invoices -->
+<h2 class="text-lg font-bold text-gray-800 mb-4"><i class="fas fa-file-invoice text-blue-500 mr-2"></i>Invoices</h2>
 <div class="bg-white rounded-lg shadow-md overflow-hidden">
     <table class="w-full">
         <thead class="bg-gray-50">
@@ -29,7 +90,9 @@
                 <td class="px-6 py-4 text-sm">{{ inv.job.vehicle.customer.user.username }}</td>
                 <td class="px-6 py-4 font-bold">₹{{ inv.total_amount|floatformat:2 }}</td>
                 <td class="px-6 py-4">{% if inv.is_paid %}<span
-                        class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-bold">Paid</span>{% else %}<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-bold">Unpaid</span>{% endif %}</td>
+                        class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 font-bold">Paid</span>
+                        {% else%}<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-bold">Unpaid</span>
+                    {%endif %}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">{{ inv.created_at|date:"M d, Y" }}</td>
                 <td class="px-6 py-4"><a href="{% url 'admin_invoice_detail' inv.pk %}"
                         class="text-blue-600 hover:underline text-sm">View</a></td>

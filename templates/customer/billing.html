@@ -5,13 +5,13 @@
 
 <div class="mb-5">
     <h1 class="text-xl font-bold text-gray-800">Billing</h1>
-    <p class="text-sm text-gray-400 mt-1">Your invoices and payment history</p>
+    <p class="text-sm text-gray-400 mt-1">Your invoices, payments & money requests</p>
 </div>
 
 <!-- Summary Cards -->
 <div class="grid grid-cols-2 gap-3 mb-6">
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-slide-up">
-        <div class="text-xs text-gray-400 font-medium uppercase mb-1">Total Paid</div>
+        <div class="text-xs text-gray-400 font-medium uppercase mb-1">Total Spent</div>
         <div class="text-2xl font-bold text-green-600">₹{{ total_spent|floatformat:0 }}</div>
     </div>
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-slide-up">
@@ -21,6 +21,37 @@
     </div>
 </div>
 
+<!-- Accepted Money Requests -->
+{% if accepted_money_requests %}
+<h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Accepted Money Requests</h2>
+<div class="space-y-2 mb-6">
+    {% for mr in accepted_money_requests %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 animate-slide-up">
+        <div class="flex justify-between items-start mb-2">
+            <div>
+                <div class="font-medium text-gray-700 text-sm">Job #{{ mr.job.id }}</div>
+                <div class="text-xs text-gray-400">
+                    {{ mr.job.vehicle.registration_number }} · {{ mr.created_at|date:"M d, Y" }}</div>
+            </div>
+            <span class="px-2.5 py-1 text-[11px] rounded-full font-bold bg-green-100 text-green-700">
+                Accepted
+            </span>
+        </div>
+        {% if mr.description %}
+        <div class="text-xs text-gray-500 mb-2">{{ mr.description|truncatechars:60 }}</div>
+        {% endif %}
+        <div class="flex items-center justify-between border-t border-gray-100 pt-2 mt-2">
+            <div class="text-xs text-gray-400">{{ mr.repairs.count }} repair(s)</div>
+            <div class="text-lg font-bold text-gray-800">₹{{ mr.estimated_cost_snapshot|floatformat:0 }}</div>
+        </div>
+    </div>
+    {% endfor %}
+    <div class="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
+        <span class="text-sm font-bold text-green-700">Total Accepted: ₹{{ total_money_accepted|floatformat:0 }}</span>
+    </div>
+</div>
+{% endif %}
+
 <!-- Invoice List -->
 <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Invoices</h2>
 <div class="space-y-2">
@@ -29,8 +60,8 @@
         <div class="flex justify-between items-start mb-2">
             <div>
                 <div class="font-medium text-gray-700 text-sm">Invoice for Job #{{ inv.job.id }}</div>
-                <div class="text-xs text-gray-400">{{ inv.job.vehicle.registration_number }} · {{ inv.created_at|date:"M
-                    d, Y" }}</div>
+                <div class="text-xs text-gray-400">
+                    {{ inv.job.vehicle.registration_number }} · {{ inv.created_at|date:"M d, Y" }}</div>
             </div>
             <span
                 class="px-2.5 py-1 text-[11px] rounded-full font-bold {% if inv.is_paid %}bg-green-100 text-green-700{% else %}bg-amber-100 text-amber-700{% endif %}">
@@ -53,7 +84,7 @@
         </div>
     </div>
     {% empty %}
-    <div class="text-center py-16">
+    <div class="text-center py-10">
         <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
             <i class="fas fa-receipt text-gray-400 text-2xl"></i>
         </div>

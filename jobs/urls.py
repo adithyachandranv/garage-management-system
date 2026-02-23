@@ -8,5 +8,5 @@ urlpatterns = [
     path('mechanic/jobs/<int:pk>/repair/', job_views.mechanic_add_repair, name='mechanic_add_repair'),
     path('mechanic/jobs/<int:pk>/status/', job_views.mechanic_update_status, name='mechanic_update_status'),
     path('mechanic/jobs/<int:pk>/estimate/', job_views.mechanic_update_estimate, name='mechanic_update_estimate'),
-    path('mechanic/jobs/<int:pk>/approval/', job_views.mechanic_request_approval, name='mechanic_request_approval'),
+    path('mechanic/jobs/<int:pk>/request-money/', job_views.mechanic_request_money, name='mechanic_request_money'),
 ]

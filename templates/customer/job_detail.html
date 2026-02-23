@@ -70,41 +70,64 @@
             <i class="fas fa-user-cog text-blue-500 text-xs"></i>
         </div>
         <span>Mechanic: <strong>
-            {{ job.assigned_mechanic.get_full_name|default:job.assigned_mechanic.username }}</strong></span>
+                {{ job.assigned_mechanic.get_full_name|default:job.assigned_mechanic.username }}</strong></span>
     </div>
     {% endif %}
     {% if job.estimated_completion %}
-    <div class="mt-2 text-xs text-gray-400"><i class="fas fa-clock mr-1"></i>ETA: {{ job.estimated_completion|date:"M d, Y H:i" }}</div>
+    <div class="mt-2 text-xs text-gray-400"><i class="fas fa-clock mr-1"></i>
+        ETA: {{ job.estimated_completion|date:"M d, Y H:i" }}</div>
     {% endif %}
 </div>
 
-<!-- Pending Approvals -->
-{% for a in approvals %}
-{% if a.status == 'PENDING' %}
+<!-- Pending Money Requests -->
+{% for a in pending_money_requests %}
 <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 mb-4 animate-slide-up">
     <div class="flex items-center gap-3 mb-3">
         <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-            <i class="fas fa-hand-paper text-amber-600"></i>
+            <i class="fas fa-money-bill-wave text-amber-600"></i>
         </div>
         <div>
-            <div class="font-bold text-amber-800">Approval Required</div>
-            <div class="text-sm text-amber-600">Estimated cost: ₹{{ a.estimated_cost_snapshot|floatformat:0 }}</div>
+            <div class="font-bold text-amber-800">Money Requested</div>
+            <div class="text-sm text-amber-600">Amount: ₹{{ a.estimated_cost_snapshot|floatformat:0 }}</div>
         </div>
     </div>
+    {% if a.description %}
+    <div class="text-sm text-amber-700 mb-3 bg-amber-100/50 rounded-lg p-3">
+        <i class="fas fa-comment-alt text-amber-500 mr-1"></i>{{ a.description }}
+    </div>
+    {% endif %}
+    <div class="text-xs text-amber-500 mb-3">
+        {{ a.repairs.count }} repair(s) included · {{ a.created_at|date:"M d, H:i" }}</div>
     <a href="{% url 'customer_approve_repair' a.pk %}"
         class="block w-full bg-amber-500 text-white text-center py-3 rounded-xl font-medium text-sm hover:bg-amber-600 transition shadow-sm">
         <i class="fas fa-check-circle mr-2"></i>Review & Decide
     </a>
 </div>
-{% endif %}
 {% endfor %}
+
+<!-- Accepted Money Total -->
+{% if accepted_money_total %}
+<div class="bg-green-50 border border-green-200 rounded-2xl p-4 mb-4 animate-slide-up">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+            <i class="fas fa-check-circle text-green-600"></i>
+        </div>
+        <div class="flex-1">
+            <div class="text-sm font-bold text-green-800">Money Accepted</div>
+            <div class="text-xs text-green-600">Total approved for this job</div>
+        </div>
+        <div class="text-xl font-bold text-green-700">₹{{ accepted_money_total|floatformat:0 }}</div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Repair Updates (Chat-style) -->
 {% if repairs %}
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4 animate-slide-up">
     <div class="flex justify-between items-center mb-4">
         <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Repair Updates</h3>
-        {% if total_repair_cost %}<span class="text-sm font-bold text-gray-600">₹{{ total_repair_cost|floatformat:0 }}</span>{% endif %}
+        {% if total_repair_cost %}<span class="text-sm font-bold text-gray-600">
+            ₹{{ total_repair_cost|floatformat:0 }}</span>{% endif %}
     </div>
     <div class="space-y-3">
         {% for r in repairs %}
@@ -159,7 +182,8 @@
             </div>
             <div class="pb-3">
                 <div class="text-sm text-gray-700">{{ a.action }}</div>
-                <div class="text-xs text-gray-400">{{ a.timestamp|date:"M d, H:i" }}{% if a.old_status %} · {{ a.old_status }} → {{ a.new_status }}{% endif %}</div>
+                <div class="text-xs text-gray-400">
+                    {{ a.timestamp|date:"M d, H:i" }}{% if a.old_status %} · {{ a.old_status }} → {{ a.new_status }}{% endif %}</div>
             </div>
         </div>
         {% endfor %}

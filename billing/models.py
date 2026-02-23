@@ -8,6 +8,8 @@ class Approval(TimeStampedModel):
     repairs = models.ManyToManyField('repairs.RepairLog', related_name='approvals')
     estimated_cost_snapshot = models.DecimalField(max_digits=10, decimal_places=2)
 
+    description = models.TextField(blank=True, default='')
+
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
         ('APPROVED', 'Approved'),
@@ -15,6 +17,9 @@ class Approval(TimeStampedModel):
     ]
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+
+    def __str__(self):
+        return f"Approval #{self.id} - {self.get_status_display()} (₹{self.estimated_cost_snapshot})"
 
 class Invoice(TimeStampedModel):
     job = models.OneToOneField('jobs.ServiceJob', on_delete=models.CASCADE)

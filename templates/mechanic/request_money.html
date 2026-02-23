@@ -1,0 +1,65 @@
+{% extends 'base_app.html' %}
+{% block title %}Request Money - Job #{{ job.id }}{% endblock %}
+{% block nav_jobs %}bnav-active{% endblock %}
+{% block content %}
+
+<a href="{% url 'mechanic_job_detail' job.pk %}"
+    class="inline-flex items-center text-sm text-gray-400 hover:text-blue-600 mb-4 transition">
+    <i class="fas fa-arrow-left mr-2"></i>Back to Job #{{ job.id }}
+</a>
+
+<div class="mb-5">
+    <h1 class="text-xl font-bold text-gray-800">Request Money</h1>
+    <p class="text-sm text-gray-400 mt-1">
+        {{ job.vehicle.make }} {{ job.vehicle.model }} · {{ job.vehicle.registration_number }}</p>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 animate-slide-up">
+    <!-- Repairs included -->
+    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Repairs Included</h3>
+    <div class="space-y-2 mb-5">
+        {% for r in unapproved_repairs %}
+        <div class="bg-gray-50 rounded-xl p-4">
+            <div class="flex justify-between items-start mb-1">
+                <div class="text-sm font-medium text-gray-700">{{ r.diagnosis }}</div>
+                <span class="text-sm font-bold text-gray-700">₹{{ r.estimated_cost|floatformat:0 }}</span>
+            </div>
+            {% if r.work_done %}
+            <div class="text-xs text-gray-500">✓ {{ r.work_done }}</div>
+            {% endif %}
+            <div class="text-xs text-gray-400 mt-1">{{ r.created_at|date:"M d, Y · H:i" }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Cost Summary -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-6 text-center">
+        <div class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-1">Total Amount Requested</div>
+        <div class="text-3xl font-bold text-amber-800">₹{{ total_cost|floatformat:0 }}</div>
+        <div class="text-xs text-amber-500 mt-1">Based on {{ unapproved_repairs|length }} repair(s)</div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <!-- Description -->
+        <div class="mb-5">
+            <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                Description (optional)
+            </label>
+            <textarea name="description" rows="3" placeholder="Explain why this amount is needed..."
+                class="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-700 focus:ring-2 focus:ring-amber-300 focus:border-amber-400 outline-none transition resize-none"></textarea>
+        </div>
+
+        <div class="text-sm text-gray-500 mb-5 bg-gray-50 rounded-xl p-4">
+            <i class="fas fa-info-circle text-gray-400 mr-2"></i>
+            This will send a money request to the customer. They can review and accept or reject it.
+        </div>
+
+        <button type="submit"
+            class="w-full bg-amber-500 text-white py-3.5 rounded-xl font-bold text-sm hover:bg-amber-600 transition shadow-sm flex items-center justify-center gap-2">
+            <i class="fas fa-paper-plane"></i>Send Money Request
+        </button>
+    </form>
+</div>
+
+{% endblock %}

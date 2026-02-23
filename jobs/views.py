@@ -121,42 +121,57 @@ def mechanic_update_estimate(request, pk):
         return redirect('mechanic_job_detail', pk=pk)
     return render(request, 'mechanic/update_estimate.html', {'job': job})
 
-# ─── Mechanic: Request Approval ─────────
+# ─── Mechanic: Request Money ────────────
 @mechanic_required
-def mechanic_request_approval(request, pk):
+def mechanic_request_money(request, pk):
     job = get_object_or_404(ServiceJob, pk=pk, assigned_mechanic=request.user)
     
     # Identify unapproved repairs
     unapproved_repairs = job.repairs.filter(is_approved=False)
     if not unapproved_repairs.exists():
-         messages.info(request, "All repairs are already approved.")
+         messages.info(request, "All repairs are already approved. Add a repair log first.")
          return redirect('mechanic_job_detail', pk=pk)
 
     total_cost = sum(r.estimated_cost for r in unapproved_repairs)
 
     if request.method == 'POST':
+        description = request.POST.get('description', '')
         approval = Approval.objects.create(
-            job=job, estimated_cost_snapshot=total_cost, status='PENDING'
+            job=job,
+            estimated_cost_snapshot=total_cost,
+            status='PENDING',
+            description=description,
         )
         approval.repairs.set(unapproved_repairs)
         
         try:
             job.change_status('WAITING_APPROVAL', request.user)
-        except Exception as e:
-            messages.error(request, f"Could not update job status: {e}")
-            # We still allow the approval request to be created, but status might not change if invalid transition (shouldn't happen now)
-        messages.success(request, 'Approval request sent.')
+        except Exception:
+            pass  # Status transition may not be valid from every state, but the money request is still created
+
+        from jobs.models import JobActivityLog
+        JobActivityLog.objects.create(
+            job=job, performed_by=request.user,
+            action='Money Requested',
+            remarks=f'₹{total_cost} for {unapproved_repairs.count()} repair(s)'
+        )
+
+        messages.success(request, f'Money request of ₹{total_cost} sent to customer.')
         
         # Notify customer
         create_notification(
             recipient=job.vehicle.customer.user,
-            title=f"Approval Requested: {job.vehicle.registration_number}",
-            message=f"Additional repairs require your approval. Estimated cost: ${total_cost}",
-            notification_type="approval_request",
+            title=f"Money Requested: {job.vehicle.registration_number}",
+            message=f"Mechanic has requested ₹{total_cost} for repairs. Please review.",
+            notification_type="money_request",
             related_job=job,
             link=f"/customer/jobs/{job.pk}/"
         )
         
         return redirect('mechanic_job_detail', pk=pk)
     
-    return render(request, 'mechanic/request_approval.html', {'job': job, 'total_cost': total_cost})
+    return render(request, 'mechanic/request_money.html', {
+        'job': job,
+        'unapproved_repairs': unapproved_repairs,
+        'total_cost': total_cost,
+    })
